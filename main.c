@@ -28,8 +28,13 @@ int main(void)
     servo_init();
     int degrees = 0;
     int i;
+    int object_collision;
     float adc = 0;
     unsigned int ping = 0;
+    char object_inWay[] = "Object Hit! Please reverse";
+    char distance_uart[] = "Distance (cm)";
+    char degrees_uart[] = "Degrees";
+    char width_uart[] = "Width";
     float average_adc;
     float distance_adc;
     float distance_ping;
@@ -37,7 +42,7 @@ int main(void)
     float average_distance;
     unsigned int average_ping;
     float last = 0;
-    int angles[10];
+    int angles[40];
     int j = 0;
     int obj = 0;
     int k = 0;
@@ -49,12 +54,30 @@ int main(void)
     char object_width[10];
     int width;
     char input;
+    int temp;
+    for(i = 0; i < strlen(distance_uart); i++){
+        uart_sendChar(distance_uart[i]);
+    }
+    for(i = 0; i < 15; i++){
+         uart_sendChar(' ');
+    }
+    for(i = 0; i < strlen(degrees_uart); i++){
+        uart_sendChar(degrees_uart[i]);
+    }
+    for(i = 0; i < 15; i++){
+         uart_sendChar(' ');
+    }
+    for(i = 0; i < strlen(width_uart); i++){
+        uart_sendChar(width_uart[i]);
+    }
+    uart_sendChar('\r');
+    uart_sendChar('\n');
     while(1){
         //this is the goto spot in the movement loop
         scan:
         degrees = 0;
         //scan for objects
-    while(degrees < 180){
+    while(degrees <= 180){
         servo_move(degrees);
         for(i = 0; i < 3; i++){
             adc += adc_read();
@@ -64,9 +87,11 @@ int main(void)
         ping = ping_read();
         distance_adc = (12289 * pow(average_adc, -0.861));
         distance_ping = (((float)ping / 16000000) * 34300) / 2;
-        average_distance = (distance_ping + distance_adc) / 2;
+       // average_distance = ((distance_ping + distance_adc) / 2) - 20;
+        average_distance = distance_adc;
+        lcd_printf("%f", average_distance);
         //checks if the distances between the previous scan has dropped
-        if(last - average_distance >= 15){
+        if(last - average_distance >= 10 && average_distance <= 50 && last <= 90){
             angles[j] = degrees;
             j++;
             obj += 1;
@@ -76,13 +101,18 @@ int main(void)
              k++;
             }
             //this if statement is for when the object is done being scanned
-        }else if(last - average_distance < 15 && last > 0 && obj >= 5){
+        }
+        else if(last - average_distance < 10 && last > 0 && obj >= 5){
             //find the distance, angle, and width of the object and print it in putty
             last = average_distance;
-            object_distance_final[s] = object_distances[1];
+            temp = ceil(k / 2) - 1;
+            if(object_distances[temp] > 50){
+                temp -= 1;
+            }
+            object_distance_final[s] = object_distances[temp];
             angle = angles[(j / 2) + 1];
             width = angles[j - 1] - angles[0];
-            if(width )
+
             sprintf(adc_uart , "%f", object_distance_final[s]);
             sprintf(object_angle, "%d", angle);
             sprintf(object_width, "%d", width);
@@ -120,13 +150,21 @@ int main(void)
     while(1){
        input = uart_receive();
        if(input == 'w'){
-           move_forward(sensor, 300);
+          object_collision = move_forward(sensor, 200);
+          if(object_collision == 0){
+              for(i = 0; i < strlen(object_inWay); i++){
+                  uart_sendChar(object_inWay[i]);
+              }
+              uart_sendChar('\r');
+              uart_sendChar('\n');
+
+          }
        }
        if(input == 'a'){
            turn_counterclockwise(sensor, 90);
        }
        if(input == 's'){
-           reverse(sensor, 300);
+           reverse(sensor, 200);
        }
        if(input == 'q'){
            goto done;
