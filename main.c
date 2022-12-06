@@ -77,6 +77,35 @@ int main(void)
         scan:
         degrees = 0;
         //scan for objects
+	    
+	//edited by Evan, cliff and boundary detection will live here
+	if(sensor_data->cliffFrontLeftSignal < 20 || sensor_data->cliffFrontRightSignal < 20 || sensor_data->cliffLeftSignal < 20 || sensor_data->cliffRightSignal){
+	//if cliff is detected
+		oi_setWheels(0,0);
+		uart_sendStr("\n\rCliff Detected");
+		
+		if(sensor_data->cliffLeftSignal < sensor_data->cliffRightSignal){ //if cliff is on left side turn right
+			//move backwards
+			//turn clockwise
+		}else{
+			//move backwards
+			//turn counter clockwise
+		}
+	}    
+	//boundary detection    
+	if(sensor_data->cliffLeftSignal > 2600 || sensor_data->cliffRightSignal > 2600){
+		oi_setWheels(0,0);
+		uart_sendStr("\n\rCliff Detected");
+		if(sensor_data->cliffLeftSignal < sensor_data->cliffRightSignal){
+			//move backwards
+			//turn clockwise
+		}else{
+			//move backwards
+			//turn counter clockwise
+		}
+	}    
+	//finish of edit by Evan    
+	    
     while(degrees <= 180){
         servo_move(degrees);
         for(i = 0; i < 3; i++){
